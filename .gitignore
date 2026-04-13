@@ -1,0 +1,100 @@
+# ==========================================
+# Java & Compilation Artifacts
+# ==========================================
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Common Ant output directories (adjust to your build.xml)
+build/
+dist/
+bin/
+classes/
+out/
+
+# ==========================================
+# Ant & Dependency Management (Ivy)
+# ==========================================
+.ant/
+ivy-cache/
+ivy-reports/
+*.log
+*.log.*
+# If your build.xml downloads dependencies into lib/, uncomment below:
+# lib/
+antlib/
+
+# ==========================================
+# IDE Configuration
+# ==========================================
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+nbdist/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# ==========================================
+# OS, Editor & Temporary Files
+# ==========================================
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+*.swp
+*.swo
+*~
+.*.swx
+.*.swo
+.*.swm
+*.pid
+*.lock
+
+# ==========================================
+# Test, Coverage & Profiling
+# ==========================================
+coverage/
+test-output/
+junit/
+jacoco/
+.hprof
+*.jfr
+*.heapdump
+
+# ==========================================
+# Documentation & Generated Assets
+# ==========================================
+javadoc/
+doc/
+api/
+generated-sources/
+generated-docs/
+
+# ==========================================
+# Local Config & Secrets (Customize as needed)
+# ==========================================
+.env
+local.properties
+*.properties.bak
+*.xml.bak
+# Uncomment if you keep environment-specific build properties out of VCS
+# build.properties
+# config/local/
