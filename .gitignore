@@ -2,7 +2,7 @@
 # Java & Compilation Artifacts
 # ==========================================
 *.class
-*.jar
+# *.jar
 *.war
 *.ear
 *.zip
@@ -26,7 +26,7 @@ ivy-reports/
 *.log.*
 # If your build.xml downloads dependencies into lib/, uncomment below:
 # lib/
-antlib/
+# antlib/
 
 # ==========================================
 # IDE Configuration
