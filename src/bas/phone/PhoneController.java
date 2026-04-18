@@ -4,7 +4,7 @@
  */
 package bas.phone;
 
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.Queue;
 
 /**
@@ -13,9 +13,15 @@ import java.util.Queue;
  */
 public class PhoneController {
 
-    private Queue<CallRequest> callQueue = new LinkedList<>();
+    private ConcurrentLinkedQueue<CallRequest> callQueue = new ConcurrentLinkedQueue<>();
     private VoiceSynthesiser voiceSynth = new VoiceSynthesiser();
     private Phone phone = new Phone();
+
+    public PhoneController() {
+        Thread callHandler = new Thread(this::handleCallQueue);
+        callHandler.setDaemon(true); // stops automatically when program ends
+        callHandler.start();
+    }
 
     void callService(String room, String sensor) {
         performCall(CallType.SERVICE, "Service alert in room " + room + ". Sensor: " + sensor);
@@ -27,44 +33,55 @@ public class PhoneController {
     }
 
     public synchronized void performCall(CallType type, String msg) {
-
-        // create the callrequest 
         CallRequest callReq = new CallRequest();
         callReq.setType(type);
         callReq.setCallMsg(msg);
-
-        // add to queue
         callQueue.add(callReq);
+        System.out.println("Queued: " + type + " — " + msg);
+    }
 
+    public void handleCallQueue() {
         // handle queue 
-        while (!callQueue.isEmpty()) {
-            CallRequest curCall = callQueue.poll();
-            boolean connected = false;
-            for (int i = 0; i < 5; i++) {
-                connected = phone.ringPhone(curCall.getType());
-                if (connected) {
-                    break;
+        while (true) {
+            if (!callQueue.isEmpty()) {
+                CallRequest curCall = callQueue.poll();
+                boolean connected = false;
+
+                // Try ringing up to 5 times
+                for (int i = 0; i < 5; i++) {
+                    connected = phone.ringPhone(curCall.getType());
+                    if (connected) {
+                        break;
+                    }
+
+                    try {
+                        System.out.println("No answer, waiting before retry " + (i + 2) + "...");
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 }
-                //not connected - wait 1 sec then try again
+
+                // If connected, play the message
+                if (connected) {
+                    Audio audio = voiceSynth.CreateAudio(curCall.getCallMsg());
+                    phone.beginCall(audio);
+                    phone.endCall();
+                } else {
+                    System.out.println("Failed to connect after 5 attempts.");
+                }
+
+                updateCallLogs(curCall, connected);
+
+            } else {
+                // Queue is empty — wait a bit before checking again
                 try {
-                    System.out.println("Wwaiting before retry " + (i + 2) + "");
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
             }
-            // if connected then play message
-            if (connected) {
-                Audio audio = voiceSynth.CreateAudio(curCall.getCallMsg());
-                phone.beginCall(audio);
-                phone.endCall();
-            } else {
-                System.out.println("Failed to connect after 5 attempts");
-            }
-            // log result
-            updateCallLogs(curCall, connected);
         }
-
     }
 
     private void updateCallLogs(CallRequest req, boolean connected) {
