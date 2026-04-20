@@ -8,7 +8,7 @@ public abstract class Sensor {
     protected Consumer<Sensor> onFailure;
     protected SensorRepositroy repository;
 
-    public Sensor(){
+    public Sensor() {
         this.isTriggered = false;
     }
 
@@ -16,11 +16,11 @@ public abstract class Sensor {
         this.repository = repository;
     }
 
-    public boolean getIsTriggred(){
+    public boolean getIsTriggred() {
         return isTriggered;
     }
 
-    public void seIsTriggred(boolean isTriggered){
+    public void seIsTriggred(boolean isTriggered) {
         this.isTriggered = isTriggered;
     }
 
@@ -28,14 +28,14 @@ public abstract class Sensor {
         return onFailure;
     }
 
-    public void setOnFailure(Consumer<Sensor> onFailure){
+    public void setOnFailure(Consumer<Sensor> onFailure) {
         this.onFailure = onFailure;
     }
 
     public abstract boolean poll();
 
 
-    protected void signalFailure(){
+    protected void signalFailure() {
         if (onFailure != null) {
             onFailure.accept(this);
         }

@@ -1,7 +1,5 @@
 package bas.sensors;
 
-import bas.epl.EsperSensorEngine;
-
 public class SensorTriggredEvent {
 
     private final Sensor sensor;

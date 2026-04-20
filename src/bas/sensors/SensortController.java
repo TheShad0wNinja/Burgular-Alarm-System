@@ -1,6 +1,6 @@
 package bas.sensors;
 
-import bas.epl.EsperSensorEngine;
+import bas.epl.EsperEngine;
 import bas.epl.RTSConstraints;
 
 import java.util.List;
@@ -8,12 +8,12 @@ import java.util.List;
 public class SensortController implements Runnable{
 
     private final SensorRepositroy sensorRepo;
-    private final EsperSensorEngine esperEngine;
+    private final EsperEngine esperEngine;
 
     private Thread pollThread;
     private volatile boolean running = false;
 
-    public SensortController(SensorRepositroy sensorRepo, EsperSensorEngine esperEngine) {
+    public SensortController(SensorRepositroy sensorRepo, EsperEngine esperEngine) {
 
         this.sensorRepo = sensorRepo;
         this.esperEngine = esperEngine;

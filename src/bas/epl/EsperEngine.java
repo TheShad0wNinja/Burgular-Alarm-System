@@ -8,11 +8,11 @@ import com.espertech.esper.client.EPServiceProviderManager;
 import com.espertech.esper.client.EPStatement;
 import com.espertech.esper.client.EventBean;
 
-public class EsperSensorEngine {
+public class EsperEngine {
 
     private final EPServiceProvider engine;
 
-    public EsperSensorEngine(SensorTriggeredCallback onTrigger, SensorFailureCallback onFailure, RepeatedIntrusionCallback onRepeatedIntrusion) {
+    public EsperEngine(SensorTriggeredCallback onTrigger, SensorFailureCallback onFailure, RepeatedIntrusionCallback onRepeatedIntrusion) {
 
         engine = EPServiceProviderManager.getDefaultProvider();
          engine.getEPAdministrator().getConfiguration().addEventType(SensorTriggredEvent.class);
