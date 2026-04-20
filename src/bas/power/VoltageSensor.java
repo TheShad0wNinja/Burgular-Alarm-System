@@ -9,11 +9,12 @@ public class VoltageSensor {
     private float currentVoltage;
     private Runnable onFailure;
 
-    public void setOnVoltageChange(Consumer<Float> onVoltageChange) {
-        this.onVoltageChange = onVoltageChange;
+    public void setOnVoltageChange(float changedVoltage) {
+        onVoltageChange.accept(changedVoltage);
+        currentVoltage = changedVoltage;
     }
 
-    public void setOnFailure(Runnable onFailure) {
-        this.onFailure = onFailure;
+    public void setOnFailure() {
+        onFailure.run();
     }
 }

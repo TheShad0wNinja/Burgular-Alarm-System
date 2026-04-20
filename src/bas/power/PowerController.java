@@ -19,9 +19,11 @@ public class PowerController {
     }
 
     private void handleVoltageChange(float receivedVoltage) {
-
+        mainPowerSensor.setOnVoltageChange(receivedVoltage);
     }
 
-    private void handleSensorFailure() {
+    private void handleSensorFailure(VoltageSensor backupSensor) {
+        mainPowerSensor.setOnFailure();
+        setMainPowerSensor(backupSensor);
     }
 }
