@@ -22,6 +22,8 @@ import bas.sensors.MovementSensor;
 import bas.sensors.SensorController;
 import bas.sensors.SensorRepositroy;
 import bas.sensors.WindowSensor;
+import bas.ui.DebugUI;
+import javax.swing.SwingUtilities;
 import java.util.List;
 
 /**
@@ -71,6 +73,11 @@ public class BASController {
             r.switchLightOff();
         }
         
+        List<Sensor> sensors = sensorRepository.getSensors();
+        for (Sensor s : sensors) {
+            s.disableIsTriggered();
+        }
+
         if (screen != null) {
             screen.clearAllDisplayedIntrusions();
         }
@@ -174,6 +181,11 @@ public class BASController {
             screen.displayIntrusion(null, null);
         }
 
+        // Trigger all rooms as intruded
+        for (Room r :roomRepository.getRooms()){
+            r.switchLightOn();
+        }
+
         phoneController.callPolice("POWER");
     }
 
@@ -244,7 +256,7 @@ public class BASController {
         powerController = new PowerController(this.powerEngine);
 		phoneController = new PhoneController();
 		
-		Room consoleRoom = roomRepository.getRooms().get(0);
+		Room consoleRoom = roomRepository.getRooms().get(0); // Assign console Room as the firrst room
         this.panicButton = new PanicButton(consoleRoom);
         this.clearAlarmButton = new ClearAlarmButton();
         this.panicButton.setOnPress(() -> panicRoom(this.panicButton.getRoom()));
@@ -259,6 +271,11 @@ public class BASController {
             clearAlarmButton
         );
         screen = new ConsoleScreen(ui);
+
+        SwingUtilities.invokeLater(() -> {
+            DebugUI debugUi = new DebugUI(this);
+            debugUi.setVisible(true);
+        });
 	}
 	
 	

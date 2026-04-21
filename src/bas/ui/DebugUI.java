@@ -283,7 +283,9 @@ public class DebugUI extends JFrame {
             btnToggle.setMargin(btnInsets);
             btnToggle.setFocusPainted(false);
             btnToggle.addActionListener(e -> {
-                sensor.toggleTrigger();
+                if (!sensor.isBroken()) {
+                    sensor.toggleTrigger();
+                }
             });
 
             JButton btnFail = new JButton("Force Fail");

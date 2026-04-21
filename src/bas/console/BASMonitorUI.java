@@ -413,9 +413,10 @@ public class BASMonitorUI implements Displayable {
 
     private JPanel buildSensorRow(Sensor sensor, Color bg) {
         boolean triggered = sensor.getIsTriggred();   // matches their spelling
-        Color dotColor = triggered ? C_RED : C_GREEN;
-        String type    = sensor.getClass().getSimpleName()
-                               .replace("Sensor", ""); // "Door", "Window", "Movement"
+        boolean broken    = sensor.isBroken();
+        
+        Color dotColor = broken ? C_YELLOW : (triggered ? C_RED : C_GREEN);
+        String nameText = sensor.getSensorId();
 
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         row.setBackground(bg);
@@ -424,9 +425,15 @@ public class BASMonitorUI implements Displayable {
         dot.setFont(FONT_SMALL);
         dot.setForeground(dotColor);
 
-        JLabel name = new JLabel(type);
+        JLabel name = new JLabel(nameText);
         name.setFont(FONT_SMALL);
-        name.setForeground(triggered ? C_RED : C_DIM);
+        
+        if (broken) {
+            name.setForeground(C_YELLOW);
+            name.setText(nameText + " [FAILED]");
+        } else {
+            name.setForeground(triggered ? C_RED : C_DIM);
+        }
 
         row.add(dot);
         row.add(name);

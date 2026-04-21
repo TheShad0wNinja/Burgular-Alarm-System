@@ -21,6 +21,10 @@ public abstract class Sensor {
         return isTriggered;
     }
 
+    public void disableIsTriggered(){
+        isTriggered = false;
+    }
+
     public abstract boolean poll();
 
     public boolean isBroken() {
