@@ -157,7 +157,7 @@ public class EsperEngine {
         });
     }
 
-    public void deployPowerFailureRule(PowerFailureCallback cb) {
+    private void deployPowerFailureRule(PowerFailureCallback cb) {
         String epl = "select * from PowerFailureEvent";
         EPStatement statement = engine.getEPAdministrator().createEPL(epl, "PowerFailure");
 
