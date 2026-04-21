@@ -6,6 +6,7 @@ import bas.phone.CallRequest;
 import bas.phone.CallType;
 import bas.phone.Phone;
 import bas.phone.PhoneController;
+import bas.power.PowerController;
 import bas.rooms.Room;
 import bas.sensors.Sensor;
 
@@ -22,12 +23,32 @@ public class DebugUI extends JFrame {
     private final List<Runnable> refreshTasks = new ArrayList<>();
     private ConcurrentLinkedQueue<CallRequest> callQueue;
     private UIPhoneSpy phoneSpy;
+    private PowerController powerController;
+    private VoltageSensorSpy powerSpy;
 
     public DebugUI(BASController controller) {
         this.controller = controller;
         injectPhoneSpy();
+        injectPowerSpy();
         initUI();
         startRefreshTimer();
+    }
+
+    private void injectPowerSpy() {
+        try {
+            Field pcField = BASController.class.getDeclaredField("powerController");
+            pcField.setAccessible(true);
+            this.powerController = (PowerController) pcField.get(controller);
+
+            if (powerController != null) {
+                Field vsField = PowerController.class.getDeclaredField("mainPowerSensor");
+                vsField.setAccessible(true);
+                Object originalSensor = vsField.get(powerController);
+                this.powerSpy = new VoltageSensorSpy(originalSensor);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void injectPhoneSpy() {
@@ -110,8 +131,13 @@ public class DebugUI extends JFrame {
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(scrollPane, BorderLayout.CENTER);
 
+        JPanel eastPanel = new JPanel(new BorderLayout());
+        eastPanel.setPreferredSize(new Dimension(220, 0));
+        JPanel powerPanel = createPowerPanel();
         JPanel phonePanel = createPhonePanel();
-        add(phonePanel, BorderLayout.EAST);
+        eastPanel.add(powerPanel, BorderLayout.NORTH);
+        eastPanel.add(phonePanel, BorderLayout.CENTER);
+        add(eastPanel, BorderLayout.EAST);
 
         pack();
         setLocationRelativeTo(null);
@@ -119,9 +145,75 @@ public class DebugUI extends JFrame {
         setPreferredSize(new Dimension(900, 500));
     }
 
+    private JPanel createPowerPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Power System"));
+
+        JPanel infoPanel = new JPanel(new GridLayout(2, 1));
+        JLabel voltageLabel = new JLabel("Voltage: 220.0V");
+        voltageLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        infoPanel.add(voltageLabel);
+        
+        JLabel backupLabel = new JLabel("Backup Battery: OFF");
+        backupLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 10, 5));
+        infoPanel.add(backupLabel);
+        panel.add(infoPanel, BorderLayout.NORTH);
+
+        JPanel btnPanel = new JPanel(new GridLayout(4, 1, 5, 5));
+        btnPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        JButton btnDropMinor = new JButton("Set 180V (Minor Drop)");
+        btnDropMinor.setFocusPainted(false);
+        btnDropMinor.addActionListener(e -> {
+            if (powerSpy != null) powerSpy.setVoltage(180f);
+        });
+        
+        JButton btnDropMajor = new JButton("Set 0V (Major Drop)");
+        btnDropMajor.setFocusPainted(false);
+        btnDropMajor.addActionListener(e -> {
+            if (powerSpy != null) powerSpy.setVoltage(0f);
+        });
+        
+        JButton btnRecover = new JButton("Set 220V (Recover)");
+        btnRecover.setFocusPainted(false);
+        btnRecover.addActionListener(e -> {
+            if (powerSpy != null) powerSpy.setVoltage(220f);
+        });
+        
+        JButton btnFail = new JButton("Force Sensor Fail");
+        btnFail.setFocusPainted(false);
+        btnFail.addActionListener(e -> {
+            if (powerSpy != null) powerSpy.forceFail();
+        });
+
+        btnPanel.add(btnDropMinor);
+        btnPanel.add(btnDropMajor);
+        btnPanel.add(btnRecover);
+        btnPanel.add(btnFail);
+        
+        panel.add(btnPanel, BorderLayout.CENTER);
+        
+        refreshTasks.add(() -> {
+            if (powerSpy != null) {
+                voltageLabel.setText("Voltage: " + powerSpy.getCurrentVoltage() + "V" + (powerSpy.hasFailed() ? " (FAILED)" : ""));
+                if (powerSpy.hasFailed()) {
+                    voltageLabel.setForeground(Color.RED);
+                } else {
+                    voltageLabel.setForeground(Color.BLACK);
+                }
+            }
+            if (powerController != null) {
+                boolean backup = powerController.isBackupEnabled();
+                backupLabel.setText("Backup Battery: " + (backup ? "ON" : "OFF"));
+                backupLabel.setForeground(backup ? Color.BLUE : Color.BLACK);
+            }
+        });
+
+        return panel;
+    }
+
     private JPanel createPhonePanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setPreferredSize(new Dimension(220, 0));
         panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Phone System"));
 
         JLabel currentCallLabel = new JLabel("<html>Current Call:<br/><i>Idle</i></html>");
@@ -174,10 +266,11 @@ public class DebugUI extends JFrame {
 
         panel.add(Box.createRigidArea(new Dimension(0, 5)));
 
-        for (Sensor sensor : room.getSensors()) {
+        for (Sensor originalSensor : room.getSensors()) {
+            SensorSpy sensor = new SensorSpy(originalSensor);
             JPanel sensorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 2));
 
-            JLabel sensorLabel = new JLabel(sensor.getSensorId() + " ");
+            JLabel sensorLabel = new JLabel(originalSensor.getSensorId() + " ");
             sensorLabel.setPreferredSize(new Dimension(135, 20));
             sensorLabel.setFont(new Font("Arial", Font.PLAIN, 12));
             sensorLabel.setOpaque(true);
@@ -191,7 +284,7 @@ public class DebugUI extends JFrame {
             btnToggle.setMargin(btnInsets);
             btnToggle.setFocusPainted(false);
             btnToggle.addActionListener(e -> {
-                sensor.seIsTriggred(!sensor.getIsTriggred());
+                sensor.toggleTrigger();
             });
 
             JButton btnFail = new JButton("Force Fail");
@@ -199,7 +292,7 @@ public class DebugUI extends JFrame {
             btnFail.setMargin(btnInsets);
             btnFail.setFocusPainted(false);
             btnFail.addActionListener(e -> {
-                sensor.forceFailure();
+                sensor.forceFail();
             });
 
             sensorPanel.add(sensorLabel);
@@ -213,15 +306,15 @@ public class DebugUI extends JFrame {
                 if (sensor.isBroken()) {
                     sensorLabel.setBackground(Color.ORANGE);
                     sensorLabel.setForeground(Color.BLACK);
-                    sensorLabel.setText(sensor.getSensorId() + " [Failed]");
-                } else if (sensor.getIsTriggred()) {
+                    sensorLabel.setText(originalSensor.getSensorId() + " [Failed]");
+                } else if (sensor.getIsTriggered()) {
                     sensorLabel.setBackground(Color.RED);
                     sensorLabel.setForeground(Color.WHITE);
-                    sensorLabel.setText(sensor.getSensorId() + " [Trig]");
+                    sensorLabel.setText(originalSensor.getSensorId() + " [Trig]");
                 } else {
                     sensorLabel.setBackground(new Color(144, 238, 144)); // Light green
                     sensorLabel.setForeground(Color.BLACK);
-                    sensorLabel.setText(sensor.getSensorId() + " [OK]");
+                    sensorLabel.setText(originalSensor.getSensorId() + " [OK]");
                 }
             });
         }
@@ -236,6 +329,92 @@ public class DebugUI extends JFrame {
             }
         });
         timer.start();
+    }
+
+    private static class VoltageSensorSpy {
+        private final Object voltageSensor;
+        public VoltageSensorSpy(Object voltageSensor) {
+            this.voltageSensor = voltageSensor;
+        }
+        public void setVoltage(float v) {
+            try {
+                Field curVoltField = voltageSensor.getClass().getDeclaredField("currentVoltage");
+                curVoltField.setAccessible(true);
+                float old = (float) curVoltField.get(voltageSensor);
+                
+                Field origVoltField = voltageSensor.getClass().getDeclaredField("originalVoltage");
+                origVoltField.setAccessible(true);
+                origVoltField.set(voltageSensor, old);
+                
+                curVoltField.set(voltageSensor, v);
+                
+                Field onVoltField = voltageSensor.getClass().getDeclaredField("onVoltageChange");
+                onVoltField.setAccessible(true);
+                java.util.function.BiConsumer<Float, Float> onVolt = (java.util.function.BiConsumer<Float, Float>) onVoltField.get(voltageSensor);
+                if (onVolt != null) onVolt.accept(old, v);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+        public void forceFail() {
+            try {
+                Field failedField = voltageSensor.getClass().getDeclaredField("hasFailed");
+                failedField.setAccessible(true);
+                failedField.set(voltageSensor, true);
+                
+                Field onFailField = voltageSensor.getClass().getDeclaredField("onFailure");
+                onFailField.setAccessible(true);
+                Runnable onFail = (Runnable) onFailField.get(voltageSensor);
+                if (onFail != null) onFail.run();
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+        public float getCurrentVoltage() {
+            try {
+                Field curVoltField = voltageSensor.getClass().getDeclaredField("currentVoltage");
+                curVoltField.setAccessible(true);
+                return (float) curVoltField.get(voltageSensor);
+            } catch (Exception e) { return 220f; }
+        }
+        public boolean hasFailed() {
+            try {
+                Field failedField = voltageSensor.getClass().getDeclaredField("hasFailed");
+                failedField.setAccessible(true);
+                return (boolean) failedField.get(voltageSensor);
+            } catch (Exception e) { return false; }
+        }
+    }
+
+    private static class SensorSpy {
+        private final Sensor sensor;
+        public SensorSpy(Sensor sensor) {
+            this.sensor = sensor;
+        }
+        public void toggleTrigger() {
+            try {
+                Field f = Sensor.class.getDeclaredField("isTriggered");
+                f.setAccessible(true);
+                f.set(sensor, !getIsTriggered());
+            } catch (Exception e) {}
+        }
+        public void forceFail() {
+            try {
+                Field f = Sensor.class.getDeclaredField("isBroken");
+                f.setAccessible(true);
+                f.set(sensor, true);
+            } catch (Exception e) {}
+        }
+        public boolean getIsTriggered() {
+            try {
+                Field f = Sensor.class.getDeclaredField("isTriggered");
+                f.setAccessible(true);
+                return (boolean) f.get(sensor);
+            } catch (Exception e) { return false; }
+        }
+        public boolean isBroken() {
+            try {
+                Field f = Sensor.class.getDeclaredField("isBroken");
+                f.setAccessible(true);
+                return (boolean) f.get(sensor);
+            } catch (Exception e) { return false; }
+        }
     }
 
     private static class UIPhoneSpy extends Phone {

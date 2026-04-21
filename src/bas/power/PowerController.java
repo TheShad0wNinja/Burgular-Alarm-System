@@ -1,13 +1,35 @@
 package bas.power;
 
+import bas.epl.EsperEngine;
+
 public class PowerController {
 
     private VoltageSensor mainPowerSensor;
     private BackupBattery battery;
     private boolean backupEnabled;
+    private EsperEngine engine;
+
+    public PowerController(EsperEngine engine) {
+        this.engine = engine;
+        this.battery = new BackupBattery();
+        this.backupEnabled = false;
+
+        this.mainPowerSensor = new VoltageSensor(this::handleVoltageChange, this::handleSensorFailure);
+
+    }
 
     public boolean isBackupEnabled() {
         return backupEnabled;
+    }
+    
+    public void enableBackup() {
+        this.backupEnabled = true;
+        battery.turnOn();
+    }
+
+    public void disableBackup() {
+        this.backupEnabled = false;
+        battery.turnOff();
     }
 
     public void setMainPowerSensor(VoltageSensor mainPowerSensor) {
@@ -18,12 +40,12 @@ public class PowerController {
         this.battery = battery;
     }
 
-    private void handleVoltageChange(float receivedVoltage) {
-        mainPowerSensor.setOnVoltageChange(receivedVoltage, isBackupEnabled());
+    private void handleVoltageChange(float current, float original) {
+        if (mainPowerSensor.hasFailed()) return;
+        engine.sendVoltageChangeEvent(current, original, backupEnabled);
     }
-
-    private void handleSensorFailure(VoltageSensor backupSensor) {
-        mainPowerSensor.onFailure();
-        setMainPowerSensor(backupSensor);
+    private void handleSensorFailure() {
+        if (mainPowerSensor.hasFailed()) return;
+        engine.sendPowerFailureEvent("VoltageSensor");
     }
 }

@@ -9,7 +9,6 @@ import com.espertech.esper.client.EPServiceProvider;
 import com.espertech.esper.client.EPServiceProviderManager;
 import com.espertech.esper.client.EPStatement;
 import com.espertech.esper.client.EventBean;
-import jdk.jfr.Event;
 
 public class EsperEngine {
 
@@ -23,7 +22,6 @@ public class EsperEngine {
 
         deploySingleTriggeredStatement(onTrigger);
         deployFailureStatement(onFailure);
-//        deployRepeatedIntrusionStatement(onRepeatedIntrusion);
 
         System.out.println("[EsperEngine] Engine ready - 3 EPL statements deployed");
     }
@@ -194,21 +192,6 @@ public class EsperEngine {
 
      }
 
-//     private void deployRepeatedIntrusionStatement(RepeatedIntrusionCallback callback) {
-//         String epl = "select count(*) as sensorCount from SensorTriggredEvent.win:time(5000)";
-//         EPStatement statement = engine.getEPAdministrator().createEPL(epl, "RepeatedIntrusion");
-//         statement.addListener((newEvents, oldEvents) -> {
-//             if (newEvents == null) return;
-//             for (EventBean eb : newEvents) {
-//                 Long sensorCount = (Long) eb.get("sensorCount");
-//                 if (sensorCount > 1) {
-//                     System.out.printf("[Esper: RepeatedIntrusion] Multiple intrusions detected: %d%n", sensorCount);
-//                     callback.onRepeatedIntrusion(sensorCount);
-//                 }
-//             }
-//         });
-//     }
-
      public void sendVoltageChangeEvent(float currentVoltage, float originalVoltage, boolean backupEnabled) {
         engine.getEPRuntime().sendEvent(new VoltageChangeEvent(currentVoltage, originalVoltage, backupEnabled));
      }
@@ -234,11 +217,6 @@ public class EsperEngine {
     public interface SensorFailureCallback {
         void onFailure(Sensor sensor);
     }
-
-//    @FunctionalInterface
-//    public interface RepeatedIntrusionCallback {
-//        void onRepeatedIntrusion(long sensorCount);
-//    }
 
     @FunctionalInterface
     public interface VoltageMinorDropCallback {

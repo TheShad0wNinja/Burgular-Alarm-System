@@ -1,32 +1,40 @@
 package bas.power;
 
 import bas.epl.EsperEngine;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 public class VoltageSensor {
 
-    private Consumer<Float> onVoltageChange;
     private float originalVoltage;
     private float currentVoltage;
     private Runnable onFailure;
-    private EsperEngine esperEngine;
+    private BiConsumer<Float, Float> onVoltageChange;
+    private boolean hasFailed;
 
-    public void setEsperEngine(EsperEngine esperEngine) {
-        this.esperEngine = esperEngine;
-    }
+    public VoltageSensor(BiConsumer<Float, Float> onVoltageChange, Runnable onFailure) {
+        this.originalVoltage = 220f;
+        this.currentVoltage = 220f;
+        this.hasFailed = false;
 
-    public void setOnVoltageChange(float changedVoltage, boolean backupEnabled) {
-        onVoltageChange.accept(changedVoltage);
-        esperEngine.sendVoltageChangeEvent(currentVoltage, originalVoltage, backupEnabled);
-        currentVoltage = changedVoltage;
-    }
-
-    public void setOnFailure(Runnable onFailure) {
+        this.onVoltageChange = onVoltageChange;
         this.onFailure = onFailure;
     }
 
-    public void onFailure() {
-        onFailure.run();
-        esperEngine.sendPowerFailureEvent("VoltageSensor");
+    // For testing real world would update on it's own
+    public void setCurrentVoltage(float v) {
+        this.originalVoltage = currentVoltage;
+        this.currentVoltage = v;
+        onVoltageChange.accept(this.originalVoltage, this.currentVoltage);
     }
+
+    public void forceFailure() {
+        onFailure.run();
+        this.hasFailed = true;
+    }
+
+    public boolean hasFailed(){
+        return hasFailed;
+    }
+
+
 }

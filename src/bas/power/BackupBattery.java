@@ -13,10 +13,6 @@ public class BackupBattery {
         isPoweringSystem = false;
     }
 
-    public void deplete(float value) {
-        currentCharge -= value;
-    }
-
     public boolean isPoweringSystem() {
         return isPoweringSystem;
     }

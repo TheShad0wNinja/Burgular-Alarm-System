@@ -115,10 +115,23 @@ public class BASController {
         if (room == null) return;
         // Already assigned the room as intruded
         if (room.isIntruded()) return;
-        room.switchLightOn();
 
-        phoneController.callPolice(room.getName());
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                phoneController.callPolice(room.getName());
+            }
+        }).start();
+
+        room.switchLightOn();
 	}
+
+    private void triggerAlarm(){
+        this.alarmTriggered = true;
+        this.buzzer.switchOn();
+
+        phoneController.callPolice("POWER");
+    }
 
     private void handleSensorTriggered(Sensor sensor){
         triggerAlarm(sensor);
@@ -132,19 +145,20 @@ public class BASController {
     }
 
     private void handlePowerMinorDrop(VoltageChangeEvent event) {
-
+        powerController.enableBackup();
     }
 
     private void handlePowerMajorDrop(VoltageChangeEvent event) {
-
+        powerController.enableBackup();
+        triggerAlarm();
     }
 
     private void handlePowerVoltageRecovered(VoltageChangeEvent event){
-
+        powerController.disableBackup();
     }
 
     private void handlePowerFailure(PowerFailureEvent event){
-
+        phoneController.callService("System", event.getFailureSource());
     }
 
     private void registerEvents() {
@@ -167,7 +181,7 @@ public class BASController {
         registerEvents();
 
         sensorController = new SensorController(this.sensorRepository, this.sensorEngine);
-//        powerController = new PowerController(this.powerEngine);
+        powerController = new PowerController(this.powerEngine);
 		phoneController = new PhoneController();
 
         sensorController.beginPollCycle();
