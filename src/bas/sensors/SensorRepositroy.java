@@ -18,13 +18,12 @@ public class SensorRepositroy {
         if (sensor == null) {
             throw new IllegalArgumentException("Sensor must not be null");
         }
-        sensor.setRepository(this);
         sensors.add(sensor);
         System.out.println("[SensorRepository] Added: " + sensor);
     }
 
     public boolean removeSensor(Sensor sensor){
-        boolean removed = sensor.remove(sensor);
+        boolean removed = sensors.remove(sensor);
         if (removed) {
             System.out.println("[SensorRepository] Removed: " + sensor);
         }

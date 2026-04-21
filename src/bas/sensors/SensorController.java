@@ -4,16 +4,19 @@ import bas.epl.EsperEngine;
 import bas.epl.RTSConstraints;
 
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
-public class SensortController implements Runnable{
+public class SensorController implements Runnable {
 
     private final SensorRepositroy sensorRepo;
     private final EsperEngine esperEngine;
+    private final Set<Sensor> failedSensors = new HashSet<>();
 
     private Thread pollThread;
     private volatile boolean running = false;
 
-    public SensortController(SensorRepositroy sensorRepo, EsperEngine esperEngine) {
+    public SensorController(SensorRepositroy sensorRepo, EsperEngine esperEngine) {
 
         this.sensorRepo = sensorRepo;
         this.esperEngine = esperEngine;
@@ -29,15 +32,17 @@ public class SensortController implements Runnable{
         pollThread = new Thread(this, "SensorPollThread");
         pollThread.setDaemon(true);
         pollThread.start();
-        System.out.printf("[SensorController] Poll cycle started " +
-                "(interval = %dms   triggered-deadline = %dms)%n",
-                RTSConstraints.SENSOR_POLL_INTERVAL_MS,
-                RTSConstraints.SENSOR_TRIGGERED_RESPONSE_MS);
+        System.out.printf("[SensorController] Poll cycle started "
+            + "(interval = %dms   triggered-deadline = %dms)%n",
+            RTSConstraints.SENSOR_POLL_INTERVAL_MS,
+            RTSConstraints.SENSOR_TRIGGERED_RESPONSE_MS);
     }
 
     public void stopPollCycle() {
         running = false;
-        if (pollThread != null) pollThread.interrupt();
+        if (pollThread != null) {
+            pollThread.interrupt();
+        }
         System.out.println("[SensorController] Poll cycle stopped.");
     }
 
@@ -54,21 +59,21 @@ public class SensortController implements Runnable{
 
             if (elapsed > RTSConstraints.SENSOR_POLL_INTERVAL_MS) {
                 System.out.printf("[RT WARNING] Poll Cycle took %d ms   (budget = %d ms)%n",
-                        elapsed, RTSConstraints.SENSOR_POLL_INTERVAL_MS);
+                    elapsed, RTSConstraints.SENSOR_POLL_INTERVAL_MS);
             }
 
             long sleepTime = RTSConstraints.SENSOR_POLL_INTERVAL_MS - elapsed;
             if (sleepTime > 0) {
                 try {
                     Thread.sleep(sleepTime);
-                }
-                catch (InterruptedException e) {
+                } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
                 }
             }
         }
     }
+
     public void pollDevices(List<Sensor> sensors) {
         for (Sensor sensor : sensors) {
 
@@ -77,7 +82,10 @@ public class SensortController implements Runnable{
             long pollElasped = System.currentTimeMillis() - pollStart;
 
             if (!operational) {
-                handleFailure(sensor);
+                if (!failedSensors.contains(sensor)) {
+                    failedSensors.add(sensor);
+                    handleFailure(sensor);
+                }
                 continue;
             }
 
@@ -89,23 +97,24 @@ public class SensortController implements Runnable{
 
                 long totalResponse = pollElasped + dispatchedElasped;
 
-                System.out.printf("[SensorController] Intrusion DETECTED: %s " +
-                        "(response = %dms   deadline = %dms)%n",
-                        sensor, totalResponse,
-                        RTSConstraints.SENSOR_TRIGGERED_RESPONSE_MS);
+                System.out.printf("[SensorController] Intrusion DETECTED: %s "
+                    + "(response = %dms   deadline = %dms)%n",
+                    sensor, totalResponse,
+                    RTSConstraints.SENSOR_TRIGGERED_RESPONSE_MS);
 
                 if (totalResponse > RTSConstraints.SENSOR_TRIGGERED_RESPONSE_MS) {
-                    System.out.printf("[RT WARNING] TRIGGERD response MISSED DEADLINE: " +
-                            "%dms > %dms sensor = %s%n",
-                            totalResponse,
-                            RTSConstraints.SENSOR_TRIGGERED_RESPONSE_MS, sensor);
+                    System.out.printf("[RT WARNING] TRIGGERD response MISSED DEADLINE: "
+                        + "%dms > %dms sensor = %s%n",
+                        totalResponse,
+                        RTSConstraints.SENSOR_TRIGGERED_RESPONSE_MS, sensor);
                 }
             } else {
                 System.out.println("[SensorController] Intrusion NOT detected: " + sensor);
             }
         }
     }
-    public void pollDevices () {
+
+    public void pollDevices() {
         pollDevices(sensorRepo.getSensors());
     }
 
@@ -114,21 +123,17 @@ public class SensortController implements Runnable{
         long start = System.currentTimeMillis();
         esperEngine.sendFailureEvent(sensor);
 
-        if (sensor.getOnFailure() != null) {
-            sensor.getOnFailure().accept(sensor);
-        }
-
         long elsasped = System.currentTimeMillis() - start;
 
-        System.out.printf("[SensorController] Sensor FAILURE: %s " +
-                "(dspatch = %dms deadline = %dms) %n",
-                sensor, elsasped,
-                RTSConstraints.FAILURE_NOTIFY_RESPONSE_MS);
+        System.out.printf("[SensorController] Sensor FAILURE: %s "
+            + "(dspatch = %dms deadline = %dms) %n",
+            sensor, elsasped,
+            RTSConstraints.FAILURE_NOTIFY_RESPONSE_MS);
         if (elsasped > RTSConstraints.FAILURE_NOTIFY_RESPONSE_MS) {
             System.out.printf(
-                    "[RT WARNING] Failure notification MISSED DEADLINE: " +
-                    "%dms > %dms sensor = %s%n" ,
-                    elsasped, RTSConstraints.FAILURE_NOTIFY_RESPONSE_MS, sensor);
+                "[RT WARNING] Failure notification MISSED DEADLINE: "
+                + "%dms > %dms sensor = %s%n",
+                elsasped, RTSConstraints.FAILURE_NOTIFY_RESPONSE_MS, sensor);
         }
     }
 }

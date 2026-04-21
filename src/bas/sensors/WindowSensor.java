@@ -4,24 +4,18 @@ import java.util.Random;
 
 public class WindowSensor extends Sensor {
 
-    private final String windowID;
-
-    private static final double Failure_Probability = 0.2;
+    private static final double Failure_Probability = 0.001;
     private final Random random = new Random();
 
     public WindowSensor(String windowID) {
-        this.windowID = windowID;
-    }
-
-    public String getWindowID(){
-        return windowID;
+        super(windowID);
     }
 
     @Override
     public boolean poll() {
-        if (random.nextDouble() < Failure_Probability) {
-            signalFailure();
-        return false;
+        if (isBroken || random.nextDouble() < Failure_Probability) {
+            isBroken = true;
+            return false;
         }
         return true;
     }
@@ -32,6 +26,6 @@ public class WindowSensor extends Sensor {
 
     @Override
     public String toString() {
-        return "WindowSensor[ID = " + windowID + ", triggried - " + isTriggered + "]";
+        return "WindowSensor[ID = " + sensorID + ", triggried - " + isTriggered + "]";
     }
 }

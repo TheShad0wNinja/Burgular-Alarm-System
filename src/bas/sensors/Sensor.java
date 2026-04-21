@@ -1,19 +1,24 @@
 package bas.sensors;
 
-import java.util.function.Consumer;
-
 public abstract class Sensor {
 
-    protected boolean isTriggered;
-    protected Consumer<Sensor> onFailure;
-    protected SensorRepositroy repository;
+    protected final String sensorID;
 
-    public Sensor() {
+    protected boolean isTriggered;
+    protected boolean isBroken;
+
+    public Sensor(String sensorId) {
         this.isTriggered = false;
+        this.isBroken = false;
+        this.sensorID = sensorId;
     }
 
-    public void setRepository(SensorRepositroy repository) {
-        this.repository = repository;
+    public String getSensorId() {
+        return sensorID;
+    }
+
+    public void setIsTriggered(boolean isTriggered) {
+        this.isTriggered = isTriggered;
     }
 
     public boolean getIsTriggred() {
@@ -24,32 +29,18 @@ public abstract class Sensor {
         this.isTriggered = isTriggered;
     }
 
-    public Consumer<Sensor> getOnFailure() {
-        return onFailure;
-    }
-
-    public void setOnFailure(Consumer<Sensor> onFailure) {
-        this.onFailure = onFailure;
-    }
-
     public abstract boolean poll();
 
+    public void forceFailure() {
+        this.isBroken = true;
+    }
 
-    protected void signalFailure() {
-        if (onFailure != null) {
-            onFailure.accept(this);
-        }
+    public boolean isBroken() {
+        return isBroken;
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[triggred = " + isTriggered + "]";
-    }
-
-    public boolean remove(Sensor sensor) {
-        if (repository != null && sensor != null) {
-            return repository.getSensors().remove(sensor);
-        }
-        return false;
+        return getClass().getSimpleName() + "[triggred = " + isTriggered + ", broken = " + isBroken + "]";
     }
 }

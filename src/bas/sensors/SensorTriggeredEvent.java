@@ -1,12 +1,12 @@
 package bas.sensors;
 
-public class SensorTriggredEvent {
+public class SensorTriggeredEvent {
 
     private final Sensor sensor;
     private final String sensorType;
     private final long timeStamp;
 
-    public SensorTriggredEvent(Sensor sensor) {
+    public SensorTriggeredEvent(Sensor sensor) {
         this.sensor = sensor;
         this.sensorType = sensor.getClass().getSimpleName();
         this.timeStamp = System.currentTimeMillis();

@@ -1,7 +1,7 @@
 package bas.epl;
 
 import bas.sensors.Sensor;
-import bas.sensors.SensorTriggredEvent;
+import bas.sensors.SensorTriggeredEvent;
 import bas.sensors.SensorFailureEvent;
 import bas.power.VoltageChangeEvent;
 import bas.power.PowerFailureEvent;
@@ -15,15 +15,15 @@ public class EsperEngine {
 
     private final EPServiceProvider engine;
 
-    public EsperEngine(SensorTriggeredCallback onTrigger, SensorFailureCallback onFailure, RepeatedIntrusionCallback onRepeatedIntrusion) {
+    public EsperEngine(SensorTriggeredCallback onTrigger, SensorFailureCallback onFailure) {
 
          engine = EPServiceProviderManager.getDefaultProvider();
-         engine.getEPAdministrator().getConfiguration().addEventType(SensorTriggredEvent.class);
+         engine.getEPAdministrator().getConfiguration().addEventType(SensorTriggeredEvent.class);
          engine.getEPAdministrator().getConfiguration().addEventType(SensorFailureEvent.class);
 
         deploySingleTriggeredStatement(onTrigger);
         deployFailureStatement(onFailure);
-        deployRepeatedIntrusionStatement(onRepeatedIntrusion);
+//        deployRepeatedIntrusionStatement(onRepeatedIntrusion);
 
         System.out.println("[EsperEngine] Engine ready - 3 EPL statements deployed");
     }
@@ -52,7 +52,7 @@ public class EsperEngine {
                  return;
              }
              for (EventBean eb : newEvents) {
-                 SensorTriggredEvent event = (SensorTriggredEvent) eb.getUnderlying();
+                 SensorTriggeredEvent event = (SensorTriggeredEvent) eb.getUnderlying();
                  long callbackStart = System.currentTimeMillis();
 
                  System.out.printf("[Esper: SensorTriggered] -> triggerAlarm %s%n", event.getSensor());
@@ -184,7 +184,7 @@ public class EsperEngine {
 
     public void sendTriggeredEvent(Sensor sensor) {
 
-         engine.getEPRuntime().sendEvent(new SensorTriggredEvent(sensor));
+         engine.getEPRuntime().sendEvent(new SensorTriggeredEvent(sensor));
 
      }
 
@@ -194,20 +194,20 @@ public class EsperEngine {
 
      }
 
-     private void deployRepeatedIntrusionStatement(RepeatedIntrusionCallback callback) {
-         String epl = "select count(*) as sensorCount from SensorTriggredEvent.win:time(5000)";
-         EPStatement statement = engine.getEPAdministrator().createEPL(epl, "RepeatedIntrusion");
-         statement.addListener((newEvents, oldEvents) -> {
-             if (newEvents == null) return;
-             for (EventBean eb : newEvents) {
-                 Long sensorCount = (Long) eb.get("sensorCount");
-                 if (sensorCount > 1) {
-                     System.out.printf("[Esper: RepeatedIntrusion] Multiple intrusions detected: %d%n", sensorCount);
-                     callback.onRepeatedIntrusion(sensorCount);
-                 }
-             }
-         });
-     }
+//     private void deployRepeatedIntrusionStatement(RepeatedIntrusionCallback callback) {
+//         String epl = "select count(*) as sensorCount from SensorTriggredEvent.win:time(5000)";
+//         EPStatement statement = engine.getEPAdministrator().createEPL(epl, "RepeatedIntrusion");
+//         statement.addListener((newEvents, oldEvents) -> {
+//             if (newEvents == null) return;
+//             for (EventBean eb : newEvents) {
+//                 Long sensorCount = (Long) eb.get("sensorCount");
+//                 if (sensorCount > 1) {
+//                     System.out.printf("[Esper: RepeatedIntrusion] Multiple intrusions detected: %d%n", sensorCount);
+//                     callback.onRepeatedIntrusion(sensorCount);
+//                 }
+//             }
+//         });
+//     }
 
      public void sendVoltageChangeEvent(float currentVoltage, float originalVoltage, boolean backupEnabled) {
         engine.getEPRuntime().sendEvent(new VoltageChangeEvent(currentVoltage, originalVoltage, backupEnabled));
@@ -235,10 +235,10 @@ public class EsperEngine {
         void onFailure(Sensor sensor);
     }
 
-    @FunctionalInterface
-    public interface RepeatedIntrusionCallback {
-        void onRepeatedIntrusion(long sensorCount);
-    }
+//    @FunctionalInterface
+//    public interface RepeatedIntrusionCallback {
+//        void onRepeatedIntrusion(long sensorCount);
+//    }
 
     @FunctionalInterface
     public interface VoltageMinorDropCallback {

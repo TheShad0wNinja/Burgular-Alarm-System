@@ -4,23 +4,17 @@ import java.util.Random;
 
 public class MovementSensor extends Sensor{
 
-   private final String roomID;
-
-    private static final double Failure_Probability = 0.2;
+    private static final double Failure_Probability = 0.001;
     private final Random random = new Random();
 
     public MovementSensor(String roomID) {
-        this.roomID = roomID;
-    }
-
-    public String getRoomID(){
-        return roomID;
+        super(roomID);
     }
 
     @Override
     public boolean poll(){
-        if (random.nextDouble() < Failure_Probability) {
-            signalFailure();
+        if (isBroken || random.nextDouble() < Failure_Probability) {
+            isBroken = true;
             return false;
         }
         return true;
@@ -32,6 +26,6 @@ public class MovementSensor extends Sensor{
 
     @Override
     public String toString(){
-     return "MovementSensor[room = " + roomID + ", triggred" + isTriggered + "]";
+     return "MovementSensor[room = " + sensorID + ", triggred" + isTriggered + "]";
     }
 }
