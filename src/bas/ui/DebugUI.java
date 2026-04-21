@@ -97,8 +97,8 @@ public class DebugUI extends JFrame {
         });
 
         JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new GridLayout(0, 2, 10, 10)); // 2 columns for rooms
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        mainPanel.setLayout(new GridLayout(0, 2, 5, 5)); // 2 columns for rooms
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         List<Room> rooms = controller.getRoomRepository().getRooms();
         for (Room room : rooms) {
@@ -116,11 +116,12 @@ public class DebugUI extends JFrame {
         pack();
         setLocationRelativeTo(null);
         setMinimumSize(new Dimension(850, 450));
+        setPreferredSize(new Dimension(900, 500));
     }
 
     private JPanel createPhonePanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setPreferredSize(new Dimension(250, 0));
+        panel.setPreferredSize(new Dimension(220, 0));
         panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Phone System"));
 
         JLabel currentCallLabel = new JLabel("<html>Current Call:<br/><i>Idle</i></html>");
@@ -174,20 +175,28 @@ public class DebugUI extends JFrame {
         panel.add(Box.createRigidArea(new Dimension(0, 5)));
 
         for (Sensor sensor : room.getSensors()) {
-            JPanel sensorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
+            JPanel sensorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 2));
 
             JLabel sensorLabel = new JLabel(sensor.getSensorId() + " ");
-            sensorLabel.setPreferredSize(new Dimension(150, 20));
+            sensorLabel.setPreferredSize(new Dimension(135, 20));
+            sensorLabel.setFont(new Font("Arial", Font.PLAIN, 12));
             sensorLabel.setOpaque(true);
             sensorLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
 
+            Font btnFont = new Font("Arial", Font.PLAIN, 11);
+            Insets btnInsets = new Insets(2, 6, 2, 6);
+
             JButton btnToggle = new JButton("Toggle");
+            btnToggle.setFont(btnFont);
+            btnToggle.setMargin(btnInsets);
             btnToggle.setFocusPainted(false);
             btnToggle.addActionListener(e -> {
                 sensor.seIsTriggred(!sensor.getIsTriggred());
             });
 
             JButton btnFail = new JButton("Force Fail");
+            btnFail.setFont(btnFont);
+            btnFail.setMargin(btnInsets);
             btnFail.setFocusPainted(false);
             btnFail.addActionListener(e -> {
                 sensor.forceFailure();
