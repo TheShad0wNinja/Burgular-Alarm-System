@@ -3,10 +3,13 @@ package bas.epl;
 import bas.sensors.Sensor;
 import bas.sensors.SensorTriggredEvent;
 import bas.sensors.SensorFailureEvent;
+import bas.power.VoltageChangeEvent;
+import bas.power.PowerFailureEvent;
 import com.espertech.esper.client.EPServiceProvider;
 import com.espertech.esper.client.EPServiceProviderManager;
 import com.espertech.esper.client.EPStatement;
 import com.espertech.esper.client.EventBean;
+import jdk.jfr.Event;
 
 public class EsperEngine {
 
@@ -14,7 +17,7 @@ public class EsperEngine {
 
     public EsperEngine(SensorTriggeredCallback onTrigger, SensorFailureCallback onFailure, RepeatedIntrusionCallback onRepeatedIntrusion) {
 
-        engine = EPServiceProviderManager.getDefaultProvider();
+         engine = EPServiceProviderManager.getDefaultProvider();
          engine.getEPAdministrator().getConfiguration().addEventType(SensorTriggredEvent.class);
          engine.getEPAdministrator().getConfiguration().addEventType(SensorFailureEvent.class);
 
@@ -23,6 +26,20 @@ public class EsperEngine {
         deployRepeatedIntrusionStatement(onRepeatedIntrusion);
 
         System.out.println("[EsperEngine] Engine ready - 3 EPL statements deployed");
+    }
+
+    public EsperEngine(VoltageMinorDropCallback onMinorDrop, VoltageMajorDropCallback onMajorDrop, VoltageRecoveredCallback onVoltageRecovered, PowerFailureCallback onPowerFailure){
+
+        engine = EPServiceProviderManager.getDefaultProvider();
+        engine.getEPAdministrator().getConfiguration().addEventType(VoltageChangeEvent.class);
+        engine.getEPAdministrator().getConfiguration().addEventType(PowerFailureEvent.class);
+
+        deployMinorDropRule(onMinorDrop);
+        deployMajorDropRule(onMajorDrop);
+        deployRecoveredRule(onVoltageRecovered);
+        deployPowerFailureRule(onPowerFailure);
+
+        System.out.println("[EsperEngine] 4 power EPL rules deployed");
     }
 
     private void deploySingleTriggeredStatement(SensorTriggeredCallback callback) {
@@ -74,6 +91,97 @@ public class EsperEngine {
          });
     }
 
+    private void deployMinorDropRule(VoltageMinorDropCallback cb) {
+
+        String epl = "select * from VoltageChangeEvent " +
+                "where dropPercent >= 10 and dropPercent <= 20 and backupEnabled = false";
+
+        EPStatement statement = engine.getEPAdministrator().createEPL(epl, "VoltageDropMinor");
+
+        statement.addListener((newEvents, oldEvents) -> {
+            if (newEvents == null){
+                return;
+            }
+            for (EventBean eb : newEvents) {
+                VoltageChangeEvent event = (VoltageChangeEvent) eb.getUnderlying();
+                long t0 = System.currentTimeMillis();
+
+                System.out.printf("[Esper: VoltageDropMinor] drop = %.1f%% -> enable battery%n",
+                        event.getDropPercent());
+                cb.onMinorDrop(event);
+
+                checkDeadline("VoltageDropMinor",
+                        System.currentTimeMillis() - t0,
+                        RTSConstraints.POWER_DROP_MINOR_RESPONSE_MS);
+            }
+        });
+    }
+
+    private void deployMajorDropRule(VoltageMajorDropCallback cb) {
+
+        String epl = "select * from VoltageChangeEvent " + "where dropPercent > 20 and backupEnabled = false";
+
+        EPStatement statement = engine.getEPAdministrator().createEPL(epl, "VoltageDropMajor");
+
+        statement.addListener((newEvents, oldEvents) -> {
+            if (newEvents == null){
+                return;
+            }
+            for (EventBean eb : newEvents) {
+                VoltageChangeEvent event = (VoltageChangeEvent) eb.getUnderlying();
+                long t0 = System.currentTimeMillis();
+
+                System.out.printf("[Esper: VoltageDropMajor] drop = %.1f%% -> enable battery%n",
+                        event.getDropPercent());
+                cb.onMajorDrop(event);
+
+                checkDeadline("VoltageDropMajor",
+                        System.currentTimeMillis() - t0,
+                        RTSConstraints.POWER_DROP_MAJOR_RESPONSE_MS);
+            }
+        });
+    }
+
+    private void deployRecoveredRule(VoltageRecoveredCallback cb) {
+        String epl = "select * from VoltageChangeEvent " + "where dropPercent < 10 and backupEnabled = true";
+
+        EPStatement statement = engine.getEPAdministrator().createEPL(epl, "VoltageRecovered");
+        statement.addListener((newEvents, oldEvents) -> {
+            if (newEvents == null) {
+                return;
+            }
+            for (EventBean eb : newEvents) {
+                VoltageChangeEvent event = (VoltageChangeEvent) eb.getUnderlying();
+                System.out.printf("[Esper : VoltageRecovered] drop = %.1f%% -> disable battery%n",
+                        event.getDropPercent());
+                cb.onRecovered(event);
+            }
+        });
+    }
+
+    public void deployPowerFailureRule(PowerFailureCallback cb) {
+        String epl = "select * from PowerFailureEvent";
+        EPStatement statement = engine.getEPAdministrator().createEPL(epl, "PowerFailure");
+
+        statement.addListener((newEvents, oldEvents) -> {
+            if (newEvents == null) {
+                return;
+            }
+            for (EventBean eb : newEvents) {
+                PowerFailureEvent event = (PowerFailureEvent) eb.getUnderlying();
+                long t0 = System.currentTimeMillis();
+
+                System.out.printf("[Esper: PowerFailure] source = %s -> call technician%n",
+                        event.getFailureSource());
+                cb.onPowerFailure(event);
+
+                checkDeadline("PowerFailure" ,
+                        System.currentTimeMillis() - t0,
+                        RTSConstraints.FAILURE_NOTIFY_RESPONSE_MS);
+            }
+        });
+    }
+
     public void sendTriggeredEvent(Sensor sensor) {
 
          engine.getEPRuntime().sendEvent(new SensorTriggredEvent(sensor));
@@ -101,6 +209,22 @@ public class EsperEngine {
          });
      }
 
+     public void sendVoltageChangeEvent(float currentVoltage, float originalVoltage, boolean backupEnabled) {
+        engine.getEPRuntime().sendEvent(new VoltageChangeEvent(currentVoltage, originalVoltage, backupEnabled));
+     }
+
+     public void sendPowerFailureEvent(String source) {
+        engine.getEPRuntime().sendEvent(new PowerFailureEvent(source));
+     }
+
+     private void checkDeadline(String ruleName, long elapsed, long deadline) {
+        if (elapsed > deadline) {
+            System.out.printf("[RT Warning][Esper: %s] callback took %dms (deadline = %dms)%n",
+                    ruleName, elapsed, deadline);
+        }
+     }
+
+
     @FunctionalInterface
     public interface SensorTriggeredCallback {
         void onTriggerd(Sensor sensor);
@@ -115,4 +239,25 @@ public class EsperEngine {
     public interface RepeatedIntrusionCallback {
         void onRepeatedIntrusion(long sensorCount);
     }
+
+    @FunctionalInterface
+    public interface VoltageMinorDropCallback {
+        void onMinorDrop(VoltageChangeEvent event);
+    }
+
+    @FunctionalInterface
+    public interface VoltageMajorDropCallback {
+        void onMajorDrop(VoltageChangeEvent event);
+    }
+
+    @FunctionalInterface
+    public interface VoltageRecoveredCallback {
+        void onRecovered(VoltageChangeEvent event);
+    }
+
+    @FunctionalInterface
+    public interface PowerFailureCallback {
+        void onPowerFailure(PowerFailureEvent event);
+    }
+
 }
