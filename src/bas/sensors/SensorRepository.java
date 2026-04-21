@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class SensorRepositroy {
+public class SensorRepository {
 
     private final List<Sensor> sensors = Collections.synchronizedList(new ArrayList<>());
 

@@ -20,7 +20,7 @@ import bas.sensors.Sensor;
 import bas.sensors.DoorSensor;
 import bas.sensors.MovementSensor;
 import bas.sensors.SensorController;
-import bas.sensors.SensorRepositroy;
+import bas.sensors.SensorRepository;
 import bas.sensors.WindowSensor;
 import bas.ui.DebugUI;
 import javax.swing.SwingUtilities;
@@ -33,7 +33,7 @@ import java.util.List;
 public class BASController {
 	
 	private RoomRepository roomRepository;
-	private SensorRepositroy sensorRepository;
+	private SensorRepository sensorRepository;
 
 	private PhoneController phoneController;
     private PowerController powerController; 
@@ -118,7 +118,7 @@ public class BASController {
 	private void registerSensors() {
         this.buzzer = new Buzzer();
 
-        this.sensorRepository = new SensorRepositroy();
+        this.sensorRepository = new SensorRepository();
         this.roomRepository = new RoomRepository();
 
 		Room livingRoom = new Room("Living Room");

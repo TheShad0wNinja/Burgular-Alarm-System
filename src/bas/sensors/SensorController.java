@@ -9,14 +9,14 @@ import java.util.HashSet;
 
 public class SensorController implements Runnable {
 
-    private final SensorRepositroy sensorRepo;
+    private final SensorRepository sensorRepo;
     private final EsperEngine esperEngine;
     private final Set<Sensor> failedSensors = new HashSet<>();
 
     private Thread pollThread;
     private volatile boolean running = false;
 
-    public SensorController(SensorRepositroy sensorRepo, EsperEngine esperEngine) {
+    public SensorController(SensorRepository sensorRepo, EsperEngine esperEngine) {
 
         this.sensorRepo = sensorRepo;
         this.esperEngine = esperEngine;
