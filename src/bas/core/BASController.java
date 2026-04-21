@@ -4,6 +4,10 @@
 */
 package bas.core;
 
+import bas.console.BASMonitorUI;
+import bas.console.ClearAlarmButton;
+import bas.console.ConsoleScreen;
+import bas.console.PanicButton;
 import bas.epl.EsperEngine;
 import bas.phone.PhoneController;
 import bas.power.PowerController;
@@ -18,8 +22,7 @@ import bas.sensors.MovementSensor;
 import bas.sensors.SensorController;
 import bas.sensors.SensorRepositroy;
 import bas.sensors.WindowSensor;
-import bas.ui.DebugUI;
-import javax.swing.SwingUtilities;
+import java.util.List;
 
 /**
  *
@@ -41,6 +44,10 @@ public class BASController {
 
 	private boolean systemIsOn;
 	private boolean alarmTriggered = false;
+	
+    private ConsoleScreen screen;
+    private PanicButton panicButton;
+    private ClearAlarmButton clearAlarmButton;
 
 	public boolean isAlarmTriggered() {
         return alarmTriggered;
@@ -56,19 +63,48 @@ public class BASController {
 	
 	
 	public void clearAlarms() {
-		
+		this.alarmTriggered = false;
+        this.buzzer.switchOff();
+        
+        List<Room> intruded = roomRepository.getIntrudedRooms();
+        for (Room r : intruded) {
+            r.switchLightOff();
+        }
+        
+        if (screen != null) {
+            screen.clearAllDisplayedIntrusions();
+        }
 	}
 	
 	public void panicRoom(Room room){
-		
+		this.alarmTriggered = true;
+        this.buzzer.switchOn();
+        
+        if (room != null) {
+            room.switchLightOn();
+        }
+        
+        if (screen != null) {
+            screen.displayIntrusion(room, null);
+        }
+        
+        String location = (room != null) ? room.getName() : "Console";
+        phoneController.callPolice(location);
 	}
 	
 	public void switchOff(){
-		
+		this.systemIsOn = false;
+        if (sensorController != null) {
+            sensorController.stopPollCycle();
+        }
+        this.buzzer.switchOff();
 	}
 	
 	public void switchOn() {
-		
+		this.systemIsOn = true;
+        if (sensorController != null) {
+            sensorController.beginPollCycle();
+        }
 	}
 	
 	
@@ -116,19 +152,27 @@ public class BASController {
         // Already assigned the room as intruded
         if (room.isIntruded()) return;
 
+        room.switchLightOn();
+
+        if (screen != null) {
+            screen.displayIntrusion(room, sensor);
+        }
+
         new Thread(new Runnable() {
             @Override
             public void run() {
                 phoneController.callPolice(room.getName());
             }
         }).start();
-
-        room.switchLightOn();
 	}
 
     private void triggerAlarm(){
         this.alarmTriggered = true;
         this.buzzer.switchOn();
+
+        if (screen != null) {
+            screen.displayIntrusion(null, null);
+        }
 
         phoneController.callPolice("POWER");
     }
@@ -139,26 +183,42 @@ public class BASController {
 
     private void handleSensorFailure(Sensor sensor){
         Room room = roomRepository.getRoom(sensor);
-        if (room == null) return;
+        
+        String roomName = (room != null) ? room.getName() : "Unknown";
+        phoneController.callService(roomName, sensor.getSensorId());
 
-        phoneController.callService(room.getName(), sensor.getSensorId());
+        if (screen != null) {
+            screen.displayServiceNeeded(room, sensor);
+        }
     }
 
     private void handlePowerMinorDrop(VoltageChangeEvent event) {
         powerController.enableBackup();
+        if (screen != null) {
+            screen.displayBatteryUsed(true);
+        }
     }
 
     private void handlePowerMajorDrop(VoltageChangeEvent event) {
         powerController.enableBackup();
+        if (screen != null) {
+            screen.displayBatteryUsed(true);
+        }
         triggerAlarm();
     }
 
     private void handlePowerVoltageRecovered(VoltageChangeEvent event){
         powerController.disableBackup();
+        if (screen != null) {
+            screen.displayBatteryUsed(false);
+        }
     }
 
     private void handlePowerFailure(PowerFailureEvent event){
         phoneController.callService("System", event.getFailureSource());
+        if (screen != null) {
+            screen.displayServiceNeeded(null, null);
+        }
     }
 
     private void registerEvents() {
@@ -183,13 +243,22 @@ public class BASController {
         sensorController = new SensorController(this.sensorRepository, this.sensorEngine);
         powerController = new PowerController(this.powerEngine);
 		phoneController = new PhoneController();
+		
+		Room consoleRoom = roomRepository.getRooms().get(0);
+        this.panicButton = new PanicButton(consoleRoom);
+        this.clearAlarmButton = new ClearAlarmButton();
+        this.panicButton.setOnPress(() -> panicRoom(this.panicButton.getRoom()));
+        this.clearAlarmButton.setOnPress(() -> clearAlarms());
 
         sensorController.beginPollCycle();
 		
-		SwingUtilities.invokeLater(() -> {
-            DebugUI ui = new DebugUI(this);
-            ui.setVisible(true);
-        });
+        BASMonitorUI ui = new BASMonitorUI(
+            roomRepository,
+            powerController.getBattery(),
+            panicButton,
+            clearAlarmButton
+        );
+        screen = new ConsoleScreen(ui);
 	}
 	
 	

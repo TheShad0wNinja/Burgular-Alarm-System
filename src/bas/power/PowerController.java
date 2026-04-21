@@ -18,6 +18,10 @@ public class PowerController {
 
     }
 
+    public BackupBattery getBattery() {
+        return battery;
+    }
+
     public boolean isBackupEnabled() {
         return backupEnabled;
     }
