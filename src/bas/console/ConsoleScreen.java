@@ -58,9 +58,9 @@ public class ConsoleScreen {
      */
     public synchronized void displayBatteryUsed(boolean isUsed) {
         if (isUsed) {
-            display.display("[POWER] Battery backup ENABLED  —  main power lost.");
+            display.display("[POWER] Battery backup ENABLED  -  main power lost.");
         } else {
-            display.display("[POWER] Battery backup DISABLED  —  main power restored.");
+            display.display("[POWER] Battery backup DISABLED  -  main power restored.");
         }
     }
 
@@ -77,9 +77,9 @@ public class ConsoleScreen {
     public synchronized void displayServiceNeeded(Room room, Sensor sensor) {
         String location    = (room   != null) ? "Room: " + room.getName()
                                               : "System (no specific room)";
-        String sensorInfo  = (sensor != null) ? "  |  Sensor: " + sensor.getClass().getSimpleName()
+        String sensorInfo  = (sensor != null) ? "  |  Sensor: " + sensor.getSensorId()
                                               : "";
         display.display("[SERVICE NEEDED]  " + location + sensorInfo
-                + "  —  Please contact a technician.");
+                + "  - A technician is being contacted.");
     }
 }
