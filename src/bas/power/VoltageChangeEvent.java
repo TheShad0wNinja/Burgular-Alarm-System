@@ -11,10 +11,11 @@ public class VoltageChangeEvent {
     public VoltageChangeEvent(float currentVoltage, float originalVoltage, boolean backupEnabled) {
         this.currentVoltage = currentVoltage;
         this.originalVoltage = originalVoltage;
-        this.dropPercent = originalVoltage > 0 ? ((originalVoltage - currentVoltage) / originalVoltage) * 100f : 0f;
+        this.dropPercent = originalVoltage > 0 ? (((originalVoltage - currentVoltage) / originalVoltage) * 100f) : 0f;
         this.backupEnabled = backupEnabled;
         this.timeStamp = System.currentTimeMillis();
 
+        System.out.println("POWERDROP:" + dropPercent);
     }
 
     public float   getCurrentVoltage() {

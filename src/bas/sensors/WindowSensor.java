@@ -13,19 +13,15 @@ public class WindowSensor extends Sensor {
 
     @Override
     public boolean poll() {
-        if (isBroken || random.nextDouble() < Failure_Probability) {
-            isBroken = true;
+        if (isBroken() || random.nextDouble() < Failure_Probability) {
+            setBroken(true);
             return false;
         }
         return true;
     }
 
-    public void simulatedWindowOpen(boolean open){
-        seIsTriggred(open);
-    }
-
     @Override
     public String toString() {
-        return "WindowSensor[ID = " + sensorID + ", triggried - " + isTriggered + "]";
+        return "WindowSensor[ID = " + sensorID + ", triggried - " + getIsTriggred() + "]";
     }
 }

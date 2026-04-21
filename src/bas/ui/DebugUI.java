@@ -67,7 +67,6 @@ public class DebugUI extends JFrame {
                 Phone originalPhone = (Phone) phoneField.get(pc);
 
                 this.phoneSpy = new UIPhoneSpy(originalPhone);
-                phoneField.set(pc, this.phoneSpy);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -162,10 +161,10 @@ public class DebugUI extends JFrame {
         JPanel btnPanel = new JPanel(new GridLayout(4, 1, 5, 5));
         btnPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         
-        JButton btnDropMinor = new JButton("Set 180V (Minor Drop)");
+        JButton btnDropMinor = new JButton("Set 190V (Minor Drop)");
         btnDropMinor.setFocusPainted(false);
         btnDropMinor.addActionListener(e -> {
-            if (powerSpy != null) powerSpy.setVoltage(180f);
+            if (powerSpy != null) powerSpy.setVoltage(190f);
         });
         
         JButton btnDropMajor = new JButton("Set 0V (Major Drop)");
@@ -351,7 +350,7 @@ public class DebugUI extends JFrame {
                 Field onVoltField = voltageSensor.getClass().getDeclaredField("onVoltageChange");
                 onVoltField.setAccessible(true);
                 java.util.function.BiConsumer<Float, Float> onVolt = (java.util.function.BiConsumer<Float, Float>) onVoltField.get(voltageSensor);
-                if (onVolt != null) onVolt.accept(old, v);
+                if (onVolt != null) onVolt.accept(v, old);
             } catch (Exception e) { e.printStackTrace(); }
         }
         public void forceFail() {
@@ -417,44 +416,21 @@ public class DebugUI extends JFrame {
         }
     }
 
-    private static class UIPhoneSpy extends Phone {
-        private final Phone original;
-        private String status = "Idle";
+    private static class UIPhoneSpy {
+        private final Phone originalPhone;
 
-        public UIPhoneSpy(Phone original) {
-            this.original = original;
+        public UIPhoneSpy(Phone originalPhone) {
+            this.originalPhone = originalPhone;
         }
 
         public String getStatus() {
-            return status;
-        }
-
-        @Override
-        public boolean ringPhone(CallType type) {
-            status = "Ringing " + type + "...";
-            return original.ringPhone(type);
-        }
-
-        @Override
-        public void beginCall(Audio audio) {
-            status = "Speaking: " + audio.getValue();
-            original.beginCall(audio);
-        }
-
-        @Override
-        public void endCall() {
-            status = "Call Ended.";
-            original.endCall();
-        }
-
-        @Override
-        public boolean getIsInCall() {
-            return original.getIsInCall();
-        }
-
-        @Override
-        public void setIsInCall(boolean isInCall) {
-            original.setIsInCall(isInCall);
+            try {
+                Field statusField = originalPhone.getClass().getDeclaredField("status");
+                statusField.setAccessible(true);
+                return (String) statusField.get(originalPhone);
+            } catch (Exception e) {
+                return "Unknown";
+            }
         }
     }
 }

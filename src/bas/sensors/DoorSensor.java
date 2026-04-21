@@ -13,19 +13,15 @@ public class DoorSensor extends Sensor{
 
     @Override
     public boolean poll(){
-        if (isBroken || random.nextDouble() < Failure_Probability) {
-            isBroken = true;
+        if (isBroken() || random.nextDouble() < Failure_Probability) {
+            setBroken(true);
             return false;
         }
         return true;
     }
 
-    public void simulateOpenDoor(boolean open) {
-        seIsTriggred(open);
-    }
-
     @Override
     public String toString(){
-        return "DoorSensor[ID = " + sensorID + ", triggred" + isTriggered + "]";
+        return "DoorSensor[ID = " + sensorID + ", triggred" + getIsTriggred() + "]";
     }
 }

@@ -13,19 +13,15 @@ public class MovementSensor extends Sensor{
 
     @Override
     public boolean poll(){
-        if (isBroken || random.nextDouble() < Failure_Probability) {
-            isBroken = true;
+        if (isBroken() || random.nextDouble() < Failure_Probability) {
+            setBroken(true);
             return false;
         }
         return true;
     }
 
-    public void simulateMotionDetected(boolean detected) {
-        seIsTriggred(detected);
-    }
-
     @Override
     public String toString(){
-     return "MovementSensor[room = " + sensorID + ", triggred" + isTriggered + "]";
+     return "MovementSensor[room = " + sensorID + ", triggred" + getIsTriggred() + "]";
     }
 }

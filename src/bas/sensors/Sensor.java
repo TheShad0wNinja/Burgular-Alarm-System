@@ -4,8 +4,8 @@ public abstract class Sensor {
 
     protected final String sensorID;
 
-    protected boolean isTriggered;
-    protected boolean isBroken;
+    private boolean isTriggered;
+    private boolean isBroken;
 
     public Sensor(String sensorId) {
         this.isTriggered = false;
@@ -17,26 +17,18 @@ public abstract class Sensor {
         return sensorID;
     }
 
-    public void setIsTriggered(boolean isTriggered) {
-        this.isTriggered = isTriggered;
-    }
-
     public boolean getIsTriggred() {
         return isTriggered;
     }
 
-    public void seIsTriggred(boolean isTriggered) {
-        this.isTriggered = isTriggered;
-    }
-
     public abstract boolean poll();
-
-    public void forceFailure() {
-        this.isBroken = true;
-    }
 
     public boolean isBroken() {
         return isBroken;
+    }
+
+    protected void setBroken(boolean isBroken) {
+        this.isBroken = isBroken;
     }
 
     @Override

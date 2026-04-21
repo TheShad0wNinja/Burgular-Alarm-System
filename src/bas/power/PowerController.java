@@ -45,7 +45,6 @@ public class PowerController {
         engine.sendVoltageChangeEvent(current, original, backupEnabled);
     }
     private void handleSensorFailure() {
-        if (mainPowerSensor.hasFailed()) return;
         engine.sendPowerFailureEvent("VoltageSensor");
     }
 }
