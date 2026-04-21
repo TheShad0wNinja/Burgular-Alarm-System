@@ -19,4 +19,9 @@ public class Audio {
     public String getValue() {
         return value;
     }
+
+    @Override
+    public String toString() {
+        return "Audio{" + "value=" + value + '}';
+    }
 }

@@ -95,18 +95,17 @@ public class Room {
     // -------------------------------------------------------------------------
 
     /**
-     * A room is "intruded" if at least one of its sensors is currently triggered.
+     * A room is "intruded" if it's alarm lights are on
      *
-     * NOTE: uses sensor.getIsTriggred() — matching the exact method name in Sensor.java.
-     *
-     * @return true if any sensor in this room has fired
+     * @return true if it was triggered through the BAS
      */
     public boolean isIntruded() {
-        for (Sensor s : sensors) {
-            if (s.getIsTriggred()) {   // matches their spelling: getIsTriggred()
-                return true;
-            }
-        }
-        return false;
+        return light.isOn();
+//        for (Sensor s : sensors) {
+//            if (s.getIsTriggred()) {   // matches their spelling: getIsTriggred()
+//                return true;
+//            }
+//        }
+//        return false;
     }
 }

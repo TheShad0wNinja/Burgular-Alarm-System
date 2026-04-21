@@ -4,6 +4,9 @@
  */
 package bas.phone;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author lenovo
@@ -25,6 +28,11 @@ public class Phone {
     public void beginCall(Audio audio) {
         setIsInCall(true);
         System.out.println("Playing message: " + audio);
+        try {
+            Thread.sleep(5000); // Simulate Call duration
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Phone.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
     }
 

@@ -23,7 +23,7 @@ public class PhoneController {
         callHandler.start();
     }
 
-    void callService(String room, String sensor) {
+    public void callService(String room, String sensor) {
         performCall(CallType.SERVICE, "Service alert in room " + room + ". Sensor: " + sensor);
     }
 
